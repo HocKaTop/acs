@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CHIISNAU TV",
+  title: "CHISINAU TV",
   description: "HELL YEAH UTM",
 };
 

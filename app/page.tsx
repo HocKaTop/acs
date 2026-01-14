@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useHLSVideo } from "@/hooks/use-hls-video";
+
+interface Stream {
+  id: string;
+  playlist: string;
+  categoryId?: string;
+  category?: { id: string; name: string } | null;
+  thumbnail?: string;
+}
 
 export default function Home() {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
@@ -12,7 +21,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [streams, setStreams] = useState<{ id: string; playlist: string }[]>([]);
+  const [streams, setStreams] = useState<Stream[]>([]);
   const [streamsLoading, setStreamsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,7 +65,24 @@ export default function Home() {
           return;
         }
         const data = await res.json();
-        setStreams(data.streams ?? []);
+        const streamsWithThumbnails = await Promise.all(
+          (data.streams ?? []).map(async (stream: Stream) => {
+            try {
+              const thumbRes = await fetch(`/api/streams/${stream.id}/thumbnail`);
+              if (thumbRes.ok) {
+                const thumbData = await thumbRes.json();
+                return {
+                  ...stream,
+                  thumbnail: thumbData.thumbnail,
+                };
+              }
+            } catch (err) {
+              console.error(`Error loading thumbnail for ${stream.id}:`, err);
+            }
+            return stream;
+          })
+        );
+        setStreams(streamsWithThumbnails);
       } catch {
         setStreams([]);
       } finally {
@@ -120,7 +146,7 @@ export default function Home() {
         <h1 className="text-2xl font-bold tracking-tight">Chisinau TV</h1>
         <nav className="flex items-center gap-8 text-lg">
           <a className="hover:text-zinc-300 transition" href="#">Главная</a>
-          <a className="hover:text-zinc-300 transition" href="#">Категории</a>
+          <a className="hover:text-zinc-300 transition" href="/categories">Категории</a>
         </nav>
         <div className="flex items-center gap-3 text-sm text-zinc-300">
           <span className="text-xs uppercase tracking-wide text-zinc-400">
@@ -188,23 +214,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
             {streams.map((stream) => (
-              <Link
-                key={stream.id}
-                href={`/stream/${stream.id}`}
-                className="group relative rounded-2xl overflow-hidden bg-zinc-900 shadow-xl border border-white/5 hover:-translate-y-1 transition"
-              >
-                <div className="h-48 bg-zinc-800 flex items-center justify-center">
-                  <span className="text-zinc-500 group-hover:text-white transition">
-                    {stream.id}
-                  </span>
-                </div>
-
-                <div className="p-5 flex flex-col gap-2">
-                  <h4 className="font-semibold text-xl truncate">{stream.id}</h4>
-                  <p className="text-zinc-400 text-sm">HLS: streams/{stream.id}/index.m3u8</p>
-                  <span className="text-green-400 text-sm font-medium">● Live</span>
-                </div>
-              </Link>
+              <StreamCard key={stream.id} stream={stream} user={user} />
             ))}
           </div>
         )}
@@ -341,5 +351,58 @@ export default function Home() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+interface StreamCardProps {
+  stream: Stream;
+  user: { id: string; email: string } | null;
+}
+
+function StreamCard({ stream, user }: StreamCardProps) {
+  const videoRef = useHLSVideo(stream.thumbnail);
+
+  return (
+    <Link
+      href={`/stream/${stream.id}`}
+      className="group relative rounded-2xl overflow-hidden bg-zinc-900 shadow-xl border border-white/5 hover:-translate-y-1 transition"
+    >
+      <div className="h-48 bg-zinc-800 flex items-center justify-center relative overflow-hidden">
+        {stream.thumbnail ? (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            muted
+            loop
+            autoPlay
+            playsInline
+          />
+        ) : (
+          <span className="text-zinc-500 group-hover:text-white transition">
+            {stream.id.slice(0, 8)}
+          </span>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
+      </div>
+
+      <div className="p-5 flex flex-col gap-2">
+        <h4 className="font-semibold text-xl truncate">{user?.email}</h4>
+        {stream.category && (
+          <div
+            className="text-zinc-400 text-sm hover:text-white transition cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (stream.category) {
+                window.location.href = `/categories/${stream.category.id}`;
+              }
+            }}
+          >
+            {stream.category.name}
+          </div>
+        )}
+        <span className="text-green-400 text-sm font-medium">● Live</span>
+      </div>
+    </Link>
   );
 }

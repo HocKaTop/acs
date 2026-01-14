@@ -167,7 +167,7 @@ export default function StreamPage() {
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
         <div>
           <p className="text-sm text-zinc-400">Прямой эфир</p>
-          <h1 className="text-3xl font-bold">Stream: {id}</h1>
+          <h1 className="text-3xl font-bold">Stream: {user?.email}</h1>
         </div>
         <Link
           href="/"
@@ -198,18 +198,6 @@ export default function StreamPage() {
                   onReady={() => setPlayerError("")}
                 />
               </div>
-              <p className="text-sm text-zinc-400">
-                Источник: {info.playlist}
-              </p>
-              {playerError ? (
-                <p className="text-sm text-red-400">
-                  Ошибка плеера: {playerError}. Проверьте доступность плейлиста и сегментов.
-                </p>
-              ) : (
-                <p className="text-sm text-zinc-500">
-                  Если воспроизведение не началось, попробуйте нажать Play в плеере или обновить страницу.
-                </p>
-              )}
             </div>
 
             <aside className="bg-zinc-900 border border-white/10 rounded-2xl p-4 shadow-xl flex flex-col gap-4 h-fit">

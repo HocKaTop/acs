@@ -33,7 +33,7 @@ async function getUser() {
   return user;
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const user = await getUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -45,6 +45,24 @@ export async function POST() {
       { error: "stream_key_missing", message: "Сначала сгенерируйте ключ потока." },
       { status: 400 },
     );
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const categoryId = body?.categoryId || null;
+
+    // Создаём или обновляем запись стрима в БД
+    await (prisma as any).stream.upsert({
+      where: { id: streamKey },
+      update: { categoryId },
+      create: {
+        id: streamKey,
+        userId: user.id,
+        categoryId,
+      },
+    });
+  } catch (dbError) {
+    console.error("Database error:", dbError);
   }
 
   const input = `rtmp://localhost/live/${streamKey}`;

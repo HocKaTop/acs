@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function UserPage() {
   const [streamKey, setStreamKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -11,6 +16,9 @@ export default function UserPage() {
   const [stopLoading, setStopLoading] = useState(false);
   const [stopInfo, setStopInfo] = useState("");
   const [stopError, setStopError] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [ffmpegStatus, setFfmpegStatus] = useState<
     | { state: "idle" }
     | { state: "starting" }
@@ -65,6 +73,8 @@ export default function UserPage() {
       const res = await fetch("/api/ffmpeg", {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryId: selectedCategory || null }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -124,7 +134,22 @@ export default function UserPage() {
 
   useEffect(() => {
     void fetchKey();
+    void fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const res = await fetch("/api/categories");
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-sans px-6 py-10">
@@ -178,9 +203,37 @@ export default function UserPage() {
         </div>
 
         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-xl mt-6 space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Выбрать категорию стрима</h2>
+            {categoriesLoading ? (
+              <p className="text-zinc-400 text-sm">Загружаем категории...</p>
+            ) : categories.length === 0 ? (
+              <p className="text-zinc-400 text-sm">
+                Нет доступных категорий.{" "}
+                <Link href="/categories" className="text-white underline">
+                  Создайте категорию
+                </Link>
+              </p>
+            ) : (
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full rounded-lg bg-black/40 border border-white/10 px-4 py-3 text-white outline-none focus:border-white/30"
+              >
+                <option value="">-- Без категории --</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-xl mt-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-    
               <h2 className="text-xl font-semibold">Запуск трансляции</h2>
             </div>
             <button
