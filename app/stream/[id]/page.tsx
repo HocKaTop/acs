@@ -218,17 +218,8 @@ export default function StreamPage() {
               </div>
             </div>
             <aside className="bg-zinc-900 border border-white/10 rounded-2xl p-4 shadow-xl flex flex-col gap-4 h-fit">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-zinc-400">Чат стрима</p>
-                </div>
-                <span className="text-xs text-zinc-500 text-right">
-                  {authStatus === "loading"
-                    ? "Проверяем вход..."
-                    : user
-                      ? user.email
-                      : "Только для авторизованных"}
-                </span>
+              <div>
+                <p className="text-sm text-zinc-400">Чат стрима</p>
               </div>
 
               <div
