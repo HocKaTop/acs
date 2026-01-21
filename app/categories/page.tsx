@@ -53,6 +53,14 @@ export default function CategoriesPage() {
     return streams.filter((s) => s.categoryId === categoryId).length;
   };
 
+  const getSortedCategories = () => {
+    return [...categories].sort((a, b) => {
+      const countA = getStreamCount(a.id);
+      const countB = getStreamCount(b.id);
+      return countB - countA;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10 py-6 px-10">
@@ -80,7 +88,7 @@ export default function CategoriesPage() {
           <p className="text-zinc-500">Нет категорий</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {categories.map((cat) => (
+            {getSortedCategories().map((cat) => (
               <Link
                 key={cat.id}
                 href={`/categories/${cat.id}`}

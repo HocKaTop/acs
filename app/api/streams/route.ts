@@ -26,7 +26,7 @@ export async function GET() {
             where: { id },
             include: {
               category: { select: { id: true, name: true } },
-              user: { select: { id: true, email: true } },
+              user: { select: { id: true, email: true, nickname: true } },
             },
           });
         } catch (err) {
@@ -39,6 +39,7 @@ export async function GET() {
           categoryId: streamData?.categoryId || null,
           category: streamData?.category || null,
           user: streamData?.user || null,
+          displayName: streamData?.displayName || null,
         });
       }
     }

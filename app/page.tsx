@@ -10,6 +10,8 @@ interface Stream {
   categoryId?: string;
   category?: { id: string; name: string } | null;
   thumbnail?: string;
+  user?: { id: string; email: string; nickname: string | null } | null;
+  displayName?: string | null;
 }
 
 export default function Home() {
@@ -209,7 +211,7 @@ export default function Home() {
           <p className="text-zinc-400">Загружаем список стримов…</p>
         ) : streams.length === 0 ? (
           <p className="text-zinc-500">
-            Пока нет активных плейлистов. Запустите ffmpeg для вашего ключа, чтобы появиться здесь.
+            Пока нет активных трансляций.
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -367,7 +369,7 @@ function StreamCard({ stream, user }: StreamCardProps) {
       href={`/stream/${stream.id}`}
       className="group relative rounded-2xl overflow-hidden bg-zinc-900 shadow-xl border border-white/5 hover:-translate-y-1 transition"
     >
-      <div className="h-48 bg-zinc-800 flex items-center justify-center relative overflow-hidden">
+      <div className="h-100 bg-zinc-800 flex items-center justify-center relative overflow-hidden">
         {stream.thumbnail ? (
           <video
             ref={videoRef}
@@ -386,7 +388,14 @@ function StreamCard({ stream, user }: StreamCardProps) {
       </div>
 
       <div className="p-5 flex flex-col gap-2">
-        <h4 className="font-semibold text-xl truncate">{user?.email}</h4>
+        <div>
+          {stream.displayName && (
+            <h4 className="font-bold text-lg truncate">{stream.displayName}</h4>
+          )}
+          <p className="font-semibold text-sm truncate">
+            {stream.user?.nickname || stream.user?.email || "Unknown"}
+          </p>
+        </div>
         {stream.category && (
           <div
             className="text-zinc-400 text-sm hover:text-white transition cursor-pointer"

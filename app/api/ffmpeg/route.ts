@@ -50,15 +50,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const categoryId = body?.categoryId || null;
+    const displayName = body?.displayName || null;
 
     // Создаём или обновляем запись стрима в БД
     await (prisma as any).stream.upsert({
       where: { id: streamKey },
-      update: { categoryId },
+      update: { categoryId, displayName },
       create: {
         id: streamKey,
         userId: user.id,
         categoryId,
+        displayName,
       },
     });
   } catch (dbError) {

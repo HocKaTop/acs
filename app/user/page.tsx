@@ -8,6 +8,12 @@ interface Category {
   name: string;
 }
 
+interface UserProfile {
+  id: string;
+  email: string;
+  nickname: string | null;
+}
+
 export default function UserPage() {
   const [streamKey, setStreamKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +25,12 @@ export default function UserPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [nickname, setNickname] = useState<string>("");
+  const [displayName, setDisplayName] = useState<string>("");
+  const [nicknameSaving, setNicknameSaving] = useState(false);
+  const [nicknameError, setNicknameError] = useState("");
+  const [nicknameSuccess, setNicknameSuccess] = useState("");
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [ffmpegStatus, setFfmpegStatus] = useState<
     | { state: "idle" }
     | { state: "starting" }
@@ -74,7 +86,10 @@ export default function UserPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categoryId: selectedCategory || null }),
+        body: JSON.stringify({
+          categoryId: selectedCategory || null,
+          displayName: displayName || null,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -122,7 +137,7 @@ export default function UserPage() {
       const data = await res.json();
       setStopInfo(
         data?.removed
-          ? "Стрим завершён."
+          ? "Стрим завершён. Не забудьте остановить трансляцию в OBS!"
           : "Стрим и так был офлайн.",
       );
     } catch {
@@ -135,7 +150,49 @@ export default function UserPage() {
   useEffect(() => {
     void fetchKey();
     void fetchCategories();
+    void fetchUserProfile();
   }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const res = await fetch("/api/user/profile", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data.user);
+        setNickname(data.user.nickname || "");
+      }
+    } catch (err) {
+      console.error("Error loading profile:", err);
+    }
+  };
+
+  const saveNickname = async () => {
+    setNicknameError("");
+    setNicknameSuccess("");
+    setNicknameSaving(true);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: nickname || null }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.error === "nickname_taken" ? "Этот никнейм уже занят" : "Не удалось сохранить";
+        setNicknameError(msg);
+        return;
+      }
+      const data = await res.json();
+      setUserProfile(data.user);
+      setNicknameSuccess("Никнейм сохранён!");
+      setTimeout(() => setNicknameSuccess(""), 3000);
+    } catch {
+      setNicknameError("Ошибка соединения");
+    } finally {
+      setNicknameSaving(false);
+    }
+  };
 
   const fetchCategories = async () => {
     setCategoriesLoading(true);
@@ -164,7 +221,7 @@ export default function UserPage() {
           </Link>
         </div>
         <p className="text-zinc-400 mb-8">
-          Здесь вы можете посмотреть и обновить ключ потока для OBS/RTMP.
+          Здесь вы можете посмотреть и обновить информацию о себе.
         </p>
 
         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-xl">
@@ -197,36 +254,86 @@ export default function UserPage() {
           )}
 
           <p className="text-xs text-zinc-500 mt-4">
-            Держите ключ в секрете. Для потока в OBS используйте `rtmp://localhost/live/`
+            Держите ключ в секрете. Для потока в OBS используйте `rtmp://ipaddress/live/`
             и этот ключ в поле Stream Key.
           </p>
         </div>
 
         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-xl mt-6 space-y-4">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Выбрать категорию стрима</h2>
+            <h2 className="text-xl font-semibold mb-4">Мой профиль</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">Email</label>
+                <p className="text-white">{userProfile?.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">Никнейм</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="Введите никнейм"
+                    className="flex-1 rounded-lg bg-black/40 border border-white/10 px-4 py-3 text-white outline-none focus:border-white/30"
+                  />
+                  <button
+                    onClick={() => void saveNickname()}
+                    disabled={nicknameSaving}
+                    className="text-sm border border-white/20 rounded-lg px-4 py-3 hover:bg-white/10 transition disabled:opacity-60"
+                  >
+                    {nicknameSaving ? "Сохраняем..." : "Сохранить"}
+                  </button>
+                </div>
+                {nicknameError && <p className="text-red-400 text-sm mt-2">{nicknameError}</p>}
+                {nicknameSuccess && <p className="text-green-400 text-sm mt-2">{nicknameSuccess}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-xl mt-6 space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Выбрать категорию и название стрима</h2>
             {categoriesLoading ? (
               <p className="text-zinc-400 text-sm">Загружаем категории...</p>
-            ) : categories.length === 0 ? (
-              <p className="text-zinc-400 text-sm">
-                Нет доступных категорий.{" "}
-                <Link href="/categories" className="text-white underline">
-                  Создайте категорию
-                </Link>
-              </p>
             ) : (
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full rounded-lg bg-black/40 border border-white/10 px-4 py-3 text-white outline-none focus:border-white/30"
-              >
-                <option value="">-- Без категории --</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">Категория</label>
+                  {categories.length === 0 ? (
+                    <p className="text-zinc-400 text-sm">
+                      Нет доступных категорий.{" "}
+                      <Link href="/categories" className="text-white underline">
+                        Создайте категорию
+                      </Link>
+                    </p>
+                  ) : (
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-4 py-3 text-white outline-none focus:border-white/30"
+                    >
+                      <option value="">Без категории</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">Название стрима</label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Введите название стрима"
+                    className="w-full rounded-lg bg-black/40 border border-white/10 px-4 py-3 text-white outline-none focus:border-white/30"
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -248,10 +355,8 @@ export default function UserPage() {
          
           {ffmpegStatus.state === "started" ? (
             <div className="text-sm text-green-400 space-y-1">
-              <p>ffmpeg запущен{ffmpegStatus.pid ? ` (PID ${ffmpegStatus.pid})` : ""}.</p>
-              {ffmpegStatus.output ? (
-                <p className="text-zinc-300">Вывод: {ffmpegStatus.output}</p>
-              ) : null}
+              <p>Стрим запущен.</p>
+              
             </div>
           ) : ffmpegStatus.state === "error" ? (
             <p className="text-sm text-red-400">{ffmpegStatus.message}</p>
@@ -269,7 +374,7 @@ export default function UserPage() {
               onClick={() => void stopStream()}
               disabled={stopLoading || loading || !streamKey}
             >
-              {stopLoading ? "Очищаем..." : "Завершить стрим"}
+              {stopLoading ? "Очищаем..." : "Завершить"}
             </button>
           </div>
 

@@ -5,12 +5,19 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import VideoPlayer from "@/components/VideoPlayer";
 
-type StreamInfo = { id: string; playlist: string };
+type StreamInfo = {
+  id: string;
+  playlist: string;
+  user?: { id: string; email: string; nickname: string | null } | null;
+  category?: { id: string; name: string } | null;
+  displayName?: string | null;
+};
 type User = { id: string; email: string };
 type ChatMessage = {
   id: string;
   userId: string;
   userEmail: string;
+  userNickname?: string | null;
   text: string;
   createdAt: string;
 };
@@ -167,7 +174,18 @@ export default function StreamPage() {
       <div className="flex items-center justify-between mb-6 max-w-5xl mx-auto">
         <div>
           <p className="text-sm text-zinc-400">Прямой эфир</p>
-          <h1 className="text-3xl font-bold">Stream: {user?.email}</h1>
+          <h1 className="text-3xl font-bold">
+            {info?.displayName || `Stream: ${info?.user?.nickname || info?.user?.email || "Unknown"}`}
+          </h1>
+          <div className="flex items-center gap-3 mt-2 text-sm text-zinc-400">
+            <span>{info?.user?.nickname || info?.user?.email}</span>
+            {info?.category && (
+              <>
+                <span>•</span>
+                <span>{info.category.name}</span>
+              </>
+            )}
+          </div>
         </div>
         <Link
           href="/"
@@ -199,7 +217,6 @@ export default function StreamPage() {
                 />
               </div>
             </div>
-
             <aside className="bg-zinc-900 border border-white/10 rounded-2xl p-4 shadow-xl flex flex-col gap-4 h-fit">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -230,7 +247,7 @@ export default function StreamPage() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-xs text-green-300 font-semibold">
-                          {msg.userEmail}
+                          {msg.userNickname || msg.userEmail}
                         </span>
                         <span className="text-[10px] uppercase tracking-wide text-zinc-500">
                           {formatTime(msg.createdAt)}

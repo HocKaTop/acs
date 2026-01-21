@@ -8,7 +8,8 @@ import { useHLSVideo } from "@/hooks/use-hls-video";
 interface Stream {
   id: string;
   thumbnail?: string;
-  user?: { id: string; email: string } | null;
+  user?: { id: string; email: string; nickname: string | null } | null;
+  displayName?: string | null;
 }
 
 interface Category {
@@ -172,7 +173,14 @@ function StreamCard({ stream }: StreamCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
       </div>
       <div className="p-5 flex flex-col gap-2">
-        <h4 className="font-semibold text-xl truncate">{stream.user?.email || "Unknown"}</h4>
+        <div>
+          {stream.displayName && (
+            <h4 className="font-bold text-lg truncate">{stream.displayName}</h4>
+          )}
+          <p className="font-semibold text-sm truncate">
+            {stream.user?.nickname || stream.user?.email || "Unknown"}
+          </p>
+        </div>
         <span className="text-green-400 text-sm font-medium">● Live</span>
       </div>
     </Link>

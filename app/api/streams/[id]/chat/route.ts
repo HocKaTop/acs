@@ -10,6 +10,7 @@ type ChatMessage = {
   id: string;
   userId: string;
   userEmail: string;
+  userNickname?: string | null;
   text: string;
   createdAt: string;
 };
@@ -102,7 +103,7 @@ export async function POST(
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
-    select: { id: true, email: true },
+    select: { id: true, email: true, nickname: true },
   });
 
   if (!user) {
@@ -126,6 +127,7 @@ export async function POST(
     id: crypto.randomUUID(),
     userId: user.id,
     userEmail: user.email,
+    userNickname: user.nickname,
     text,
     createdAt: new Date().toISOString(),
   };

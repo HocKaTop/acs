@@ -11,6 +11,7 @@ model User {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String
+  nickname     String?  @unique
   createdAt    DateTime @default(now())
   streamKey    String?  @unique
   streams      Stream[]
@@ -25,12 +26,13 @@ model Category {
 }
 
 model Stream {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  displayName String?
+  createdAt   DateTime @default(now())
 
   @@index([userId])
   @@index([categoryId])
